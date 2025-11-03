@@ -1,4 +1,5 @@
 Rails.application.routes.draw do
+  devise_for :users
   mount EventRest::API => "/"
   mount GrapeSwaggerRails::Engine => "/api/docs"
 
