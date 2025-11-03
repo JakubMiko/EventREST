@@ -7,5 +7,5 @@ class Order < ApplicationRecord
   validates :quantity, presence: true, numericality: { greater_than: 0 }
   validates :total_price, presence: true, numericality: { greater_than: 0 }
 
-  enum status: { pending: "pending", paid: "paid", cancelled: "cancelled" }
+  enum :status, { pending: "pending", paid: "paid", cancelled: "cancelled" }
 end
