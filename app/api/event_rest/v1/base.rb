@@ -31,6 +31,11 @@ module EventRest
         def authorize!
           raise ApiException.new("Unauthorized", 401) unless current_user
         end
+
+        def admin_only!
+          authorize!
+          raise ApiException.new("Forbidden: Admin access required", 403) unless current_user.admin?
+        end
       end
 
       # mount EventRest::V1::Events
