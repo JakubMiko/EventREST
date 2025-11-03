@@ -13,7 +13,7 @@ module EventRest
     config.autoload_lib(ignore: %w[assets tasks])
 
     # Dodaj tę linię, aby Rails ładował pliki z app/api
-    config.paths.add 'app/api', eager_load: true
+    config.paths.add "app/api", eager_load: true
 
     # Configuration for the application, engines, and railties goes here.
     #
