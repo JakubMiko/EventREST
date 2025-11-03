@@ -1,8 +1,8 @@
-module EventREST
+module EventRest
   class API < Grape::API
     prefix "api"
     format :json
 
-    mount EventREST::V1::Base
+    mount EventRest::V1::Base
   end
 end

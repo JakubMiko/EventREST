@@ -1,4 +1,4 @@
-module EventREST
+module EventRest
   module V1
     class Base < Grape::API
       class ApiException < StandardError
@@ -33,7 +33,7 @@ module EventREST
         end
       end
 
-      # mount EventREST::V1::Events
+      # mount EventRest::V1::Events
 
       add_swagger_documentation(
         api_version: "v1",
@@ -42,7 +42,7 @@ module EventREST
         hide_format: true,
         base_path: "/api",
         info: {
-          title: "EventREST API",
+          title: "EventRest API",
           description: "API for the event management application"
         }
       )
