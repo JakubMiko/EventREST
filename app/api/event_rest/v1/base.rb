@@ -38,7 +38,7 @@ module EventRest
         end
       end
 
-      # mount EventRest::V1::Events
+      mount EventRest::V1::Users
 
       add_swagger_documentation(
         api_version: "v1",
@@ -48,7 +48,7 @@ module EventRest
         base_path: "/api",
         info: {
           title: "EventRest API",
-          description: "API for the event management application"
+          description: "API for event management"
         }
       )
     end

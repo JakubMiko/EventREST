@@ -1,0 +1,127 @@
+# frozen_string_literal: true
+
+module EventRest
+  module V1
+    class Users < Grape::API
+      resource :users do
+        desc "Register a new user" do
+          success code: 201,
+                  message: "Returns JWT token and user data after registration"
+        end
+        params do
+          requires :first_name, type: String
+          requires :last_name, type: String
+          requires :email, type: String
+          requires :password, type: String
+          requires :password_confirmation, type: String
+        end
+        post :register do
+          user = User.new(
+            first_name: params[:first_name],
+            last_name: params[:last_name],
+            email: params[:email],
+            password: params[:password],
+            password_confirmation: params[:password_confirmation]
+          )
+
+          if user.save
+            token = JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base)
+            status 201
+            {
+              token: token,
+              data: UserSerializer.new(user).serializable_hash
+            }
+          else
+            raise ApiException.new(user.errors.full_messages.join(", "), 422)
+          end
+        end
+
+        desc "Log in user" do
+          success code: 200,
+                  message: "Returns JWT token and user data"
+        end
+        params do
+          requires :email, type: String
+          requires :password, type: String
+        end
+        post :login do
+          user = User.find_by(email: params[:email])
+          unless user&.valid_password?(params[:password])
+            raise ApiException.new("Invalid email or password", 401)
+          end
+
+          token = JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base)
+          {
+            token: token,
+            data: UserSerializer.new(user).serializable_hash
+          }
+        end
+
+        desc "Get current logged-in user data" do
+          success code: 200,
+                  message: "Returns current logged-in user data"
+        end
+        get :current do
+          authorize!
+          user = current_user
+          UserSerializer.new(user).serializable_hash
+        end
+
+        desc "Get public user profile by id" do
+          success code: 200,
+                  message: "Returns public user profile data"
+        end
+        params do
+          requires :id, type: Integer
+        end
+        get "public/:id" do
+          user = User.find_by(id: params[:id])
+          raise ApiException.new("User not found", 404) unless user
+          PublicUserSerializer.new(user).serializable_hash
+        end
+
+        desc "Get full user data by id (admin only)" do
+          success code: 200,
+                  message: "Returns full user data"
+        end
+        params do
+          requires :id, type: Integer
+        end
+        get ":id" do
+          admin_only!
+          user = User.find_by(id: params[:id])
+          raise ApiException.new("User not found", 404) unless user
+          UserSerializer.new(user).serializable_hash
+        end
+
+        desc "Change password for logged-in user" do
+          success code: 200,
+                  message: "Password changed successfully"
+        end
+        params do
+          requires :current_password, type: String
+          requires :password, type: String
+          requires :password_confirmation, type: String
+        end
+        put :change_password do
+          authorize!
+          user = current_user
+
+          unless user.valid_password?(params[:current_password])
+            raise ApiException.new("Current password is incorrect", 422)
+          end
+
+          if params[:password] != params[:password_confirmation]
+            raise ApiException.new("Password confirmation does not match", 422)
+          end
+
+          if user.update(password: params[:password], password_confirmation: params[:password_confirmation])
+            { message: "Password changed successfully" }
+          else
+            raise ApiException.new(user.errors.full_messages.join(", "), 422)
+          end
+        end
+      end
+    end
+  end
+end
