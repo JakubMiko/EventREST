@@ -39,6 +39,7 @@ module EventRest
       end
 
       mount EventRest::V1::Users
+      mount EventRest::V1::Events
 
       add_swagger_documentation(
         api_version: "v1",
