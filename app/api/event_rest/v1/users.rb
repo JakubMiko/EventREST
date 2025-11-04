@@ -32,7 +32,7 @@ module EventRest
               data: UserSerializer.new(user).serializable_hash
             }
           else
-            raise ApiException.new(user.errors.full_messages.join(", "), 422)
+            raise EventRest::V1::Base::ApiException.new(user.errors.full_messages.join(", "), 422)
           end
         end
 
@@ -47,7 +47,7 @@ module EventRest
         post :login do
           user = User.find_by(email: params[:email])
           unless user&.valid_password?(params[:password])
-            raise ApiException.new("Invalid email or password", 401)
+            raise EventRest::V1::Base::ApiException.new("Invalid email or password", 401)
           end
 
           token = JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base)
@@ -76,7 +76,7 @@ module EventRest
         end
         get "public/:id" do
           user = User.find_by(id: params[:id])
-          raise ApiException.new("User not found", 404) unless user
+          raise EventRest::V1::Base::ApiException.new("User not found", 404) unless user
           PublicUserSerializer.new(user).serializable_hash
         end
 
@@ -90,7 +90,7 @@ module EventRest
         get ":id" do
           admin_only!
           user = User.find_by(id: params[:id])
-          raise ApiException.new("User not found", 404) unless user
+          raise EventRest::V1::Base::ApiException.new("User not found", 404) unless user
           UserSerializer.new(user).serializable_hash
         end
 
@@ -108,17 +108,17 @@ module EventRest
           user = current_user
 
           unless user.valid_password?(params[:current_password])
-            raise ApiException.new("Current password is incorrect", 422)
+            raise EventRest::V1::Base::ApiException.new("Current password is incorrect", 422)
           end
 
           if params[:password] != params[:password_confirmation]
-            raise ApiException.new("Password confirmation does not match", 422)
+            raise EventRest::V1::Base::ApiException.new("Password confirmation does not match", 422)
           end
 
           if user.update(password: params[:password], password_confirmation: params[:password_confirmation])
             { message: "Password changed successfully" }
           else
-            raise ApiException.new(user.errors.full_messages.join(", "), 422)
+            raise EventRest::V1::Base::ApiException.new(user.errors.full_messages.join(", "), 422)
           end
         end
       end
