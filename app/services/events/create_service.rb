@@ -9,23 +9,11 @@ module Events
     end
 
     def call
-      valid, error_message = valid_params?
-      return Failure(error_message) unless valid
+      result = Events::CreateContract.new.call(params)
+      return Failure(result.errors.to_h.values.flatten.join(", ")) unless result.success?
 
-      event = Event.new(params)
-      if event.save
-        Success(event)
-      else
-        Failure(event.errors.full_messages.join(", "))
-      end
-    end
-
-    private
-
-    def valid_params?
-      contract = EventContract.new
-      result = contract.call(params)
-      [ result.success?, result.errors.to_h.values.flatten.join(", ") ]
+      event = Event.new(result.to_h)
+      event.save ? Success(event) : Failure(event.errors.full_messages.join(", "))
     end
   end
 end

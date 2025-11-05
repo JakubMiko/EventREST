@@ -10,11 +10,10 @@ module Events
     end
 
     def call
-      payload = event.attributes.merge(params)
-      result  = EventContract.new.call(payload)
+      result = Events::UpdateContract.new.call(params)
       return Failure(result.errors.to_h.values.flatten.join(", ")) unless result.success?
 
-      event.assign_attributes(params)
+      event.assign_attributes(result.to_h)
       event.save ? Success(event) : Failure(event.errors.full_messages.join(", "))
     end
   end

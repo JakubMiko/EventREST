@@ -41,6 +41,7 @@ module EventRest
 
       mount EventRest::V1::Users
       mount EventRest::V1::Events
+      mount EventRest::V1::TicketBatches
 
       add_swagger_documentation(
         api_version: "v1",
