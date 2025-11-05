@@ -11,20 +11,11 @@ module Events
 
     def call
       payload = event.attributes.merge(params)
-
-      if payload["date"].respond_to?(:to_datetime)
-        payload["date"] = payload["date"].to_datetime
-      end
-
-      result = EventContract.new.call(payload)
+      result  = EventContract.new.call(payload)
       return Failure(result.errors.to_h.values.flatten.join(", ")) unless result.success?
 
       event.assign_attributes(params)
-      if event.save
-        Success(event)
-      else
-        Failure(event.errors.full_messages.join(", "))
-      end
+      event.save ? Success(event) : Failure(event.errors.full_messages.join(", "))
     end
   end
 end

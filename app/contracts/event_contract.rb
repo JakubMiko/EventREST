@@ -6,13 +6,19 @@ class EventContract < ApplicationContract
     required(:description).filled(:string)
     required(:place).filled(:string)
     required(:category).filled(:string)
-    required(:date).filled(:date_time)
+    required(:date).filled
     optional(:image)
   end
 
   rule(:date) do
-    if value && value < DateTime.now
-      key.failure("The event date must be in the future")
-    end
+    dt =
+      if value.respond_to?(:to_datetime)
+        value.to_datetime
+      elsif value.is_a?(String)
+        DateTime.iso8601(value) rescue nil
+      end
+
+    key.failure("must be a date time") unless dt
+    key.failure("The event date must be in the future") if dt && dt < DateTime.now
   end
 end
