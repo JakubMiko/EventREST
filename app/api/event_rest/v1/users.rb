@@ -51,6 +51,7 @@ module EventRest
           end
 
           token = JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base)
+          status 200
           {
             token: token,
             data: UserSerializer.new(user).serializable_hash
