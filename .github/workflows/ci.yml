@@ -69,6 +69,14 @@ jobs:
           ruby-version: .ruby-version
           bundler-cache: true
 
+      - name: Set up database
+        env:
+          RAILS_ENV: test
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432
+        run: |
+          bundle exec rails db:create
+          bundle exec rails db:schema:load
+
       - name: Run RSpec tests
         env:
           RAILS_ENV: test
