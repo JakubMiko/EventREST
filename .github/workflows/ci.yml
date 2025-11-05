@@ -39,6 +39,8 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    env:
+      SECRET_KEY_BASE: "test_secret_key_base_123"
 
     services:
       postgres:
