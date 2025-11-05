@@ -2,19 +2,20 @@ module EventRest
   module V1
     class Base < Grape::API
       class ApiException < StandardError
-        attr_accessor :message, :status
-
-        def initialize(message = nil, status = nil)
-          @message = message
-          @status = status
+        attr_reader :status
+        def initialize(message, status)
+          super(message)
+          @status = status.to_i
         end
       end
 
       rescue_from ApiException do |e|
-        error!(e.message, e.status)
+        error!({ error: e.message }, e.status)
+      end
+      rescue_from Grape::Exceptions::ValidationErrors do |e|
+        error!({ error: e.full_messages.join(", ") }, 422)
       end
 
-      format :json
       version "v1", using: :path
 
       get :ping do
@@ -29,12 +30,12 @@ module EventRest
         end
 
         def authorize!
-          raise EventRest::V1::Base::ApiException.new("Unauthorized", 401) unless current_user
+          raise ApiException.new("Unauthorized", 401) unless current_user
         end
 
         def admin_only!
           authorize!
-          raise EventRest::V1::Base::ApiException.new("Forbidden: Admin access required", 403) unless current_user.admin?
+          raise ApiException.new("Forbidden", 403) unless current_user.admin?
         end
       end
 
@@ -47,10 +48,7 @@ module EventRest
         mount_path: "/swagger_doc",
         hide_format: true,
         base_path: "/api",
-        info: {
-          title: "EventRest API",
-          description: "API for event management"
-        }
+        info: { title: "EventRest API", description: "API for event management" }
       )
     end
   end
