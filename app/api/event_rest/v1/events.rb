@@ -44,10 +44,7 @@ module EventRest
           admin_only!
           declared_params = declared(params, include_missing: false)
           result = ::Events::CreateService.new(declared_params).call
-          if result.failure?
-            raise EventRest::V1::Base::ApiException.new(result.failure, 422)
-          end
-
+          raise EventRest::V1::Base::ApiException.new(result.failure, 422) if result.failure?
           status 201
           EventSerializer.new(result.value!).serializable_hash
         end
@@ -70,13 +67,9 @@ module EventRest
           admin_only!
           event = Event.find_by(id: params[:id])
           raise EventRest::V1::Base::ApiException.new("Event not found", 404) unless event
-
           updates = declared(params, include_missing: false).except(:id)
           result = ::Events::UpdateService.new(event, updates).call
-          if result.failure?
-            raise EventRest::V1::Base::ApiException.new(result.failure, 422)
-          end
-
+          raise EventRest::V1::Base::ApiException.new(result.failure, 422) if result.failure?
           EventSerializer.new(result.value!).serializable_hash
         end
 

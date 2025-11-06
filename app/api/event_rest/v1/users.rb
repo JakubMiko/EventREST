@@ -5,8 +5,8 @@ module EventRest
     class Users < Grape::API
       resource :users do
         desc "Register a new user" do
-          success code: 201,
-                  message: "Returns JWT token and user data after registration"
+          success code: 201, message: "Returns JWT + user data"
+          failure code: 422, message: "Validation failed"
         end
         params do
           requires :first_name, type: String
@@ -16,21 +16,12 @@ module EventRest
           requires :password_confirmation, type: String
         end
         post :register do
-          user = User.new(
-            first_name: params[:first_name],
-            last_name: params[:last_name],
-            email: params[:email],
-            password: params[:password],
-            password_confirmation: params[:password_confirmation]
-          )
-
+          declared_params = declared(params, include_missing: false)
+          user = User.new(declared_params)
           if user.save
             token = JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base)
             status 201
-            {
-              token: token,
-              data: UserSerializer.new(user).serializable_hash
-            }
+            { token:, data: UserSerializer.new(user).serializable_hash }
           else
             raise EventRest::V1::Base::ApiException.new(user.errors.full_messages.join(", "), 422)
           end
@@ -45,17 +36,14 @@ module EventRest
           requires :password, type: String
         end
         post :login do
-          user = User.find_by(email: params[:email])
-          unless user&.valid_password?(params[:password])
+          declared_params = declared(params, include_missing: false)
+          user = User.find_by(email: declared_params[:email])
+          unless user&.valid_password?(declared_params[:password])
             raise EventRest::V1::Base::ApiException.new("Invalid email or password", 401)
           end
-
           token = JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base)
           status 200
-          {
-            token: token,
-            data: UserSerializer.new(user).serializable_hash
-          }
+          { token:, data: UserSerializer.new(user).serializable_hash }
         end
 
         desc "Get current logged-in user data" do
@@ -106,17 +94,15 @@ module EventRest
         end
         put :change_password do
           authorize!
+          declared_params = declared(params, include_missing: false)
           user = current_user
-
-          unless user.valid_password?(params[:current_password])
+          unless user.valid_password?(declared_params[:current_password])
             raise EventRest::V1::Base::ApiException.new("Current password is incorrect", 422)
           end
-
-          if params[:password] != params[:password_confirmation]
+          if declared_params[:password] != declared_params[:password_confirmation]
             raise EventRest::V1::Base::ApiException.new("Password confirmation does not match", 422)
           end
-
-          if user.update(password: params[:password], password_confirmation: params[:password_confirmation])
+          if user.update(password: declared_params[:password], password_confirmation: declared_params[:password_confirmation])
             { message: "Password changed successfully" }
           else
             raise EventRest::V1::Base::ApiException.new(user.errors.full_messages.join(", "), 422)

@@ -42,10 +42,8 @@ module EventRest
             admin_only!
             event = Event.find(params[:event_id])
             declared_params = declared(params, include_missing: false)
-
             result = ::TicketBatches::CreateService.new(event: event, params: declared_params).call
             raise EventRest::V1::Base::ApiException.new(result.failure, 422) unless result.success?
-
             status 201
             TicketBatchSerializer.new(result.value!).serializable_hash
           end
@@ -84,15 +82,12 @@ module EventRest
           batch = ::TicketBatch.find(params[:id])
           event = batch.event
           declared_params = declared(params, include_missing: false).except(:id)
-
           result = ::TicketBatches::UpdateService.new(
             event: event,
             ticket_batch: batch,
             params: declared_params
           ).call
-
           raise EventRest::V1::Base::ApiException.new(result.failure, 422) unless result.success?
-
           TicketBatchSerializer.new(result.value!).serializable_hash
         end
 
