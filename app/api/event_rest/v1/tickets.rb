@@ -6,7 +6,7 @@ module EventRest
       resource :tickets do
         desc "List current user's tickets" do
           success code: 200, message: "Returns tickets of authenticated user"
-          failure code: 401, message: "Unauthorized"
+          failure [ { code: 401, message: "Unauthorized" } ]
         end
         get do
           authorize!

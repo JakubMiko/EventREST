@@ -6,7 +6,7 @@ module EventRest
       resource :users do
         desc "Register a new user" do
           success code: 201, message: "Returns JWT + user data"
-          failure code: 422, message: "Validation failed"
+          failure [ { code: 422, message: "Validation failed" } ]
         end
         params do
           requires :first_name, type: String

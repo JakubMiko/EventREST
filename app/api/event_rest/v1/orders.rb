@@ -33,7 +33,7 @@ module EventRest
 
         desc "List current user's orders" do
           success code: 200, message: "Returns array of orders belonging to authenticated user"
-          failure code: 401, message: "Unauthorized"
+          failure [ { code: 401, message: "Unauthorized" } ]
         end
         get do
           authorize!

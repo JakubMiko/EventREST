@@ -17,7 +17,7 @@ module EventRest
 
         desc "Get event details by id" do
           success code: 200, message: "Returns event details"
-          failure code: 404, message: "Event not found"
+          failure [ { code: 404, message: "Event not found" } ]
         end
         params do
           requires :id, type: Integer
@@ -30,7 +30,7 @@ module EventRest
 
         desc "Create event (admin only)" do
           success code: 201, message: "Event created"
-          failure code: 422, message: "Validation failed"
+          failure [ { code: 422, message: "Validation failed" } ]
         end
         params do
           requires :name, type: String
@@ -51,8 +51,10 @@ module EventRest
 
         desc "Update event (admin only)" do
           success code: 200, message: "Event updated"
-          failure code: 404, message: "Event not found"
-          failure code: 422, message: "Validation failed"
+          failure [
+            { code: 404, message: "Event not found" },
+            { code: 422, message: "Validation failed" }
+          ]
         end
         params do
           requires :id, type: Integer
@@ -75,7 +77,7 @@ module EventRest
 
         desc "Delete event (admin only)" do
           success code: 200, message: "Event deleted"
-          failure code: 404, message: "Event not found"
+          failure [ { code: 404, message: "Event not found" } ]
         end
         params do
           requires :id, type: Integer

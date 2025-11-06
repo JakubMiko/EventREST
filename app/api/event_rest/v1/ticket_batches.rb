@@ -7,7 +7,7 @@ module EventRest
         route_param :event_id, type: Integer do
           desc "Ticket batches for event (state + order)" do
             success code: 200, message: "Returns ticket batches for the event"
-            failure code: 404, message: "Event not found"
+            failure [ { code: 404, message: "Event not found" } ]
           end
           params do
             optional :state, type: String, values: %w[available sold_out expired inactive all], default: "available"
@@ -53,7 +53,7 @@ module EventRest
       resource :ticket_batches do
         desc "Show ticket batch" do
           success code: 200, message: "Returns ticket batch details"
-          failure code: 404, message: "Ticket batch not found"
+          failure [ { code: 404, message: "Ticket batch not found" } ]
         end
         params do
           requires :id, type: Integer
