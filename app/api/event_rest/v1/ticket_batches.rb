@@ -22,7 +22,7 @@ module EventRest
               order: params[:order]
             ).call
 
-            TicketBatchSerializer.new(collection).serializable_hash
+            TicketBatchSerializer.new(collection, include: [ :event ]).serializable_hash
           end
 
           desc "Create ticket batch (admin only)" do
@@ -59,8 +59,8 @@ module EventRest
           requires :id, type: Integer
         end
         get ":id" do
-          batch = ::TicketBatch.find(params[:id])
-          TicketBatchSerializer.new(batch).serializable_hash
+          batch = ::TicketBatch.includes(:event).find(params[:id])
+          TicketBatchSerializer.new(batch, include: [ :event ]).serializable_hash
         end
 
         desc "Update ticket batch (admin only)" do

@@ -28,7 +28,7 @@ module EventRest
 
             raise EventRest::V1::Base::ApiException.new(result.failure, 422) unless result.success?
             status 201
-            OrderSerializer.new(result.value!, include: %i[tickets ticket_batch]).serializable_hash
+            OrderSerializer.new(result.value!, include: %i[tickets ticket_batch event]).serializable_hash
         end
 
         desc "List current user's orders" do
@@ -39,9 +39,9 @@ module EventRest
           authorize!
           orders = ::Order
                      .where(user_id: current_user.id)
-                     .includes(:tickets, :ticket_batch, ticket_batch: :event)
+                     .includes(:tickets, :ticket_batch, :event)
                      .order(created_at: :desc)
-          OrderSerializer.new(orders, include: %i[tickets ticket_batch]).serializable_hash
+          OrderSerializer.new(orders, include: %i[tickets ticket_batch event]).serializable_hash
         end
 
         desc "Show order details (admin any / user own)" do
@@ -57,11 +57,11 @@ module EventRest
         end
         get ":id" do
           authorize!
-          order = ::Order.includes(:tickets, :ticket_batch, ticket_batch: :event).find(params[:id])
+          order = ::Order.includes(:tickets, :ticket_batch, :event).find(params[:id])
           unless current_user.admin? || order.user_id == current_user.id
             raise EventRest::V1::Base::ApiException.new("Forbidden", 403)
           end
-          OrderSerializer.new(order, include: %i[tickets ticket_batch]).serializable_hash
+          OrderSerializer.new(order, include: %i[tickets ticket_batch event]).serializable_hash
         end
 
         desc "List all orders (admin only, optional filter by user_id)" do
@@ -77,9 +77,9 @@ module EventRest
         get :all do
           admin_only!
           declared_params = declared(params, include_missing: false)
-          scope = ::Order.includes(:tickets, :ticket_batch, ticket_batch: :event).order(created_at: :desc)
+          scope = ::Order.includes(:user, :ticket_batch, :event).order(created_at: :desc)
           scope = scope.where(user_id: declared_params[:user_id]) if declared_params[:user_id]
-          OrderSerializer.new(scope, include: %i[tickets ticket_batch]).serializable_hash
+          OrderSerializer.new(scope, include: %i[ticket_batch event user]).serializable_hash
         end
 
         desc "Cancel order (owner or admin)" do
@@ -100,7 +100,7 @@ module EventRest
           result = ::Orders::CancelService.new(order: order, actor: current_user).call
           raise EventRest::V1::Base::ApiException.new(result.failure, 403) if result.failure? && result.failure == "Forbidden"
           raise EventRest::V1::Base::ApiException.new(result.failure, 422) unless result.success?
-          OrderSerializer.new(result.value!, include: %i[tickets ticket_batch]).serializable_hash
+          OrderSerializer.new(result.value!, include: %i[tickets ticket_batch event]).serializable_hash
         end
 
         desc "Pay order (owner or admin, mocked payment)" do
@@ -134,7 +134,7 @@ module EventRest
           raise EventRest::V1::Base::ApiException.new(result.failure, 403) if result.failure? && result.failure == "Forbidden"
           raise EventRest::V1::Base::ApiException.new(result.failure, 422) unless result.success?
           status 200
-          OrderSerializer.new(result.value!, include: %i[tickets ticket_batch]).serializable_hash
+          OrderSerializer.new(result.value!, include: %i[tickets ticket_batch event]).serializable_hash
         end
       end
     end

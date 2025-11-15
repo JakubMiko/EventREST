@@ -44,6 +44,27 @@ RSpec.describe "Events API", type: :request do
       expect(json["data"].size).to eq(1)
       expect(json["data"].first["attributes"]["name"]).to eq("Past Event")
     end
+
+    context "serialization" do
+      let!(:event_with_batches) { create(:event, name: "Event with batches") }
+      let!(:batch1) { create(:ticket_batch, event: event_with_batches, price: 50) }
+      let!(:batch2) { create(:ticket_batch, event: event_with_batches, price: 100) }
+
+      it "includes ticket_batches in the response" do
+        get "/api/v1/events"
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        event_data = json["data"].find { |e| e["id"] == event_with_batches.id.to_s }
+        expect(event_data["relationships"]).to have_key("ticket_batches")
+        expect(event_data["relationships"]["ticket_batches"]["data"].size).to eq(2)
+
+        batch_ids = event_data["relationships"]["ticket_batches"]["data"].map { |b| b["id"] }
+        included_batches = json["included"].select { |i| i["type"] == "ticket_batch" && batch_ids.include?(i["id"]) }
+        expect(included_batches.size).to eq(2)
+        expect(included_batches.map { |b| b["attributes"]["price"].to_f }).to contain_exactly(50.0, 100.0)
+      end
+    end
   end
 
   describe "GET /api/v1/events/:id" do
@@ -61,6 +82,27 @@ RSpec.describe "Events API", type: :request do
       expect(response).to have_http_status(404)
       json = JSON.parse(response.body)
       expect(json["error"]).to eq("Event not found")
+    end
+
+    context "serialization" do
+      let!(:event_with_batches) { create(:event, name: "Event with batches") }
+      let!(:batch1) { create(:ticket_batch, event: event_with_batches, price: 75) }
+      let!(:batch2) { create(:ticket_batch, event: event_with_batches, price: 150) }
+      let!(:batch3) { create(:ticket_batch, event: event_with_batches, price: 200) }
+
+      it "includes all ticket_batches in the response" do
+        get "/api/v1/events/#{event_with_batches.id}"
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        expect(json["data"]["relationships"]).to have_key("ticket_batches")
+        expect(json["data"]["relationships"]["ticket_batches"]["data"].size).to eq(3)
+
+        batch_ids = json["data"]["relationships"]["ticket_batches"]["data"].map { |b| b["id"] }
+        included_batches = json["included"].select { |i| i["type"] == "ticket_batch" }
+        expect(included_batches.size).to eq(3)
+        expect(included_batches.map { |b| b["attributes"]["price"].to_f }).to contain_exactly(75.0, 150.0, 200.0)
+      end
     end
   end
 

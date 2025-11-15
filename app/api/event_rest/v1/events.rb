@@ -11,8 +11,8 @@ module EventRest
           optional :past, type: Boolean
         end
         get do
-          events = EventsQuery.new(params: params).call
-          EventSerializer.new(events).serializable_hash
+          events = EventsQuery.new(params: params).call.includes(:ticket_batches)
+          EventSerializer.new(events, include: [ :ticket_batches ]).serializable_hash
         end
 
         desc "Get event details by id" do
@@ -25,7 +25,7 @@ module EventRest
         get ":id" do
           event = Event.includes(:ticket_batches).find_by(id: params[:id])
           raise EventRest::V1::Base::ApiException.new("Event not found", 404) unless event
-          EventSerializer.new(event).serializable_hash
+          EventSerializer.new(event, include: [ :ticket_batches ]).serializable_hash
         end
 
         desc "Create event (admin only)" do

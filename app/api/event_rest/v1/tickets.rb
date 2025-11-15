@@ -60,13 +60,13 @@ module EventRest
           declared_params = declared(params, include_missing: false)
 
           if declared_params[:ticket_number]
-            ticket = ::Ticket.includes(:event, :order).find_by(ticket_number: declared_params[:ticket_number])
+            ticket = ::Ticket.includes(:event, :order, :user).find_by(ticket_number: declared_params[:ticket_number])
             raise EventRest::V1::Base::ApiException.new("Ticket not found", 404) unless ticket
-            return TicketSerializer.new(ticket, include: %i[event order]).serializable_hash
+            return TicketSerializer.new(ticket, include: %i[event order user]).serializable_hash
           end
 
-          scope = TicketsQuery.new(params: declared_params).call
-          TicketSerializer.new(scope, include: %i[event order]).serializable_hash
+          scope = TicketsQuery.new(params: declared_params).call.includes(:event, :order, :user)
+          TicketSerializer.new(scope, include: %i[event order user]).serializable_hash
         end
       end
     end

@@ -53,6 +53,34 @@ RSpec.describe "Orders API", type: :request do
       post "/api/v1/orders", params: { ticket_batch_id: batch_available.id, quantity: 1 }
       expect(response).to have_http_status(401)
     end
+
+    context "serialization" do
+      it "includes event, tickets, and ticket_batch in the response" do
+        params = { ticket_batch_id: batch_available.id, quantity: 3 }
+        post "/api/v1/orders", params: params, headers: { "Authorization" => "Bearer #{user_token}" }
+
+        expect(response).to have_http_status(201)
+        json = JSON.parse(response.body)
+
+        expect(json["data"]["relationships"]).to have_key("event")
+        expect(json["data"]["relationships"]).to have_key("tickets")
+        expect(json["data"]["relationships"]).to have_key("ticket_batch")
+
+        ticket_ids = json["data"]["relationships"]["tickets"]["data"].map { |t| t["id"] }
+        expect(ticket_ids.size).to eq(3)
+
+        expect(json["included"].map { |i| i["type"] }).to include("ticket", "event", "ticket_batch")
+
+        included_tickets = json["included"].select { |i| i["type"] == "ticket" }
+        expect(included_tickets.size).to eq(3)
+
+        included_event = json["included"].find { |i| i["type"] == "event" }
+        expect(included_event["id"]).to eq(event.id.to_s)
+
+        included_batch = json["included"].find { |i| i["type"] == "ticket_batch" }
+        expect(included_batch["id"]).to eq(batch_available.id.to_s)
+      end
+    end
   end
 
   describe "GET /api/v1/orders (current_user orders)" do
@@ -126,6 +154,36 @@ RSpec.describe "Orders API", type: :request do
     it "returns 401 when unauthorized" do
       get "/api/v1/orders/all"
       expect(response).to have_http_status(401)
+    end
+
+    context "serialization" do
+      it "includes event, ticket_batch, and user (minimal) in the response" do
+        get "/api/v1/orders/all", headers: { "Authorization" => "Bearer #{admin_token}" }
+
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        json["data"].each do |order_data|
+          expect(order_data["relationships"]).to have_key("event")
+          expect(order_data["relationships"]).to have_key("ticket_batch")
+          expect(order_data["relationships"]).to have_key("user")
+        end
+
+        included_types = json["included"].map { |i| i["type"] }.uniq
+        expect(included_types).to include("event", "ticket_batch", "user")
+
+        included_users = json["included"].select { |i| i["type"] == "user" }
+        included_users.each do |user_data|
+          expect(user_data["attributes"]).to have_key("email")
+          expect(user_data["attributes"]).to have_key("first_name")
+          expect(user_data["attributes"]).to have_key("last_name")
+          expect(user_data).not_to have_key("relationships")
+        end
+
+
+        included_tickets = json["included"]&.select { |i| i["type"] == "ticket" }
+        expect(included_tickets).to be_empty
+      end
     end
   end
 

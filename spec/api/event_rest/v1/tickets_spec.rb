@@ -40,6 +40,36 @@ RSpec.describe "Tickets API", type: :request do
       get "/api/v1/tickets"
       expect(response).to have_http_status(401)
     end
+
+    context "serialization" do
+      it "includes event and order (minimal) in the response" do
+        get "/api/v1/tickets", headers: { "Authorization" => "Bearer #{user_token}" }
+
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        # Verify each ticket has event and order relationships
+        json["data"].each do |ticket_data|
+          expect(ticket_data["relationships"]).to have_key("event")
+          expect(ticket_data["relationships"]).to have_key("order")
+        end
+
+        # Verify included section has event and order
+        included_types = json["included"].map { |i| i["type"] }.uniq
+        expect(included_types).to include("event", "order")
+
+        # Verify order serializer is minimal (TicketOrderSerializer - no tickets relation)
+        included_orders = json["included"].select { |i| i["type"] == "order" }
+        included_orders.each do |order_data|
+          # Should have basic order fields
+          expect(order_data["attributes"]).to have_key("status")
+          expect(order_data["attributes"]).to have_key("total_price")
+          expect(order_data["attributes"]).to have_key("quantity")
+          # Should NOT have tickets relationship (minimal serializer prevents duplication)
+          expect(order_data).not_to have_key("relationships")
+        end
+      end
+    end
   end
 
   describe "GET /api/v1/tickets/:id (show)" do
@@ -172,6 +202,39 @@ RSpec.describe "Tickets API", type: :request do
       json = JSON.parse(response.body)
       ids = json["data"].map { |it| it["attributes"]["id"] }
       expect(ids).to contain_exactly(t1.id, t2.id)
+    end
+
+    context "serialization" do
+      it "includes event, order, and user (minimal) in admin response" do
+        get "/api/v1/tickets/admin", headers: { "Authorization" => "Bearer #{admin_token}" }
+
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        json["data"].each do |ticket_data|
+          expect(ticket_data["relationships"]).to have_key("event")
+          expect(ticket_data["relationships"]).to have_key("order")
+          expect(ticket_data["relationships"]).to have_key("user")
+        end
+
+        included_types = json["included"].map { |i| i["type"] }.uniq
+        expect(included_types).to include("event", "order", "user")
+
+        included_users = json["included"].select { |i| i["type"] == "user" }
+        included_users.each do |user_data|
+          expect(user_data["attributes"]).to have_key("email")
+          expect(user_data["attributes"]).to have_key("first_name")
+          expect(user_data["attributes"]).to have_key("last_name")
+          expect(user_data).not_to have_key("relationships")
+        end
+
+        included_orders = json["included"].select { |i| i["type"] == "order" }
+        included_orders.each do |order_data|
+          expect(order_data["attributes"]).to have_key("status")
+          expect(order_data["attributes"]).to have_key("total_price")
+          expect(order_data).not_to have_key("relationships")
+        end
+      end
     end
   end
 end

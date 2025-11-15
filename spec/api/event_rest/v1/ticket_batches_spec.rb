@@ -60,6 +60,23 @@ RSpec.describe "TicketBatches API", type: :request do
       # desc: later sale_start first
       expect(ids.first).to eq(available2.id)
     end
+
+    context "serialization" do
+      it "includes event in the response" do
+        get "/api/v1/events/#{event.id}/ticket_batches"
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        json["data"].each do |batch_data|
+          expect(batch_data["relationships"]).to have_key("event")
+          expect(batch_data["relationships"]["event"]["data"]["id"]).to eq(event.id.to_s)
+        end
+
+        included_event = json["included"]&.find { |i| i["type"] == "event" && i["id"] == event.id.to_s }
+        expect(included_event).not_to be_nil
+        expect(included_event["attributes"]["name"]).to eq(event.name)
+      end
+    end
   end
 
   describe "GET /api/v1/ticket_batches/:id" do
@@ -80,6 +97,22 @@ RSpec.describe "TicketBatches API", type: :request do
     it "returns 404 when not found" do
       get "/api/v1/ticket_batches/999999"
       expect(response).to have_http_status(404)
+    end
+
+    context "serialization" do
+      it "includes event in the response" do
+        get "/api/v1/ticket_batches/#{batch.id}"
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        expect(json["data"]["relationships"]).to have_key("event")
+        expect(json["data"]["relationships"]["event"]["data"]["id"]).to eq(event.id.to_s)
+
+        included_event = json["included"]&.find { |i| i["type"] == "event" }
+        expect(included_event).not_to be_nil
+        expect(included_event["id"]).to eq(event.id.to_s)
+        expect(included_event["attributes"]).to have_key("name")
+      end
     end
   end
 
