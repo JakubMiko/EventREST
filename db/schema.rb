@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_11_03_215723) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_15_184933) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -50,6 +50,9 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_03_215723) do
     t.string "category"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["category"], name: "index_events_on_category"
+    t.index ["date", "category"], name: "index_events_on_date_and_category"
+    t.index ["date"], name: "index_events_on_date"
   end
 
   create_table "orders", force: :cascade do |t|
@@ -60,6 +63,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_03_215723) do
     t.string "status", default: "pending", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.index ["status"], name: "index_orders_on_status"
     t.index ["ticket_batch_id"], name: "index_orders_on_ticket_batch_id"
     t.index ["user_id"], name: "index_orders_on_user_id"
   end
@@ -73,6 +77,8 @@ ActiveRecord::Schema[8.0].define(version: 2025_11_03_215723) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["event_id"], name: "index_ticket_batches_on_event_id"
+    t.index ["sale_end"], name: "index_ticket_batches_on_sale_end"
+    t.index ["sale_start"], name: "index_ticket_batches_on_sale_start"
   end
 
   create_table "tickets", force: :cascade do |t|

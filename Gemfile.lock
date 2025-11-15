@@ -441,7 +441,7 @@ DEPENDENCIES
   dry-monads
   dry-validation
   factory_bot_rails
-  faker
+  faker (~> 3.2)
   grape
   grape-swagger
   grape-swagger-rails
