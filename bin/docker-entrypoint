@@ -6,8 +6,30 @@ if [ -z "${LD_PRELOAD+x}" ]; then
     export LD_PRELOAD
 fi
 
+# Wait for postgres to be ready
+wait_for_postgres() {
+  echo "Waiting for postgres to be ready..."
+  local max_attempts=30
+  local attempt=1
+
+  while [ $attempt -le $max_attempts ]; do
+    if pg_isready -h "${DB_HOST:-postgres}" -p "${DB_PORT:-5432}" -U "${DB_USERNAME:-postgres}" > /dev/null 2>&1; then
+      echo "Postgres is ready!"
+      return 0
+    fi
+
+    echo "Postgres is unavailable (attempt $attempt/$max_attempts) - sleeping"
+    sleep 2
+    attempt=$((attempt + 1))
+  done
+
+  echo "Failed to connect to postgres after $max_attempts attempts"
+  return 1
+}
+
 # If running the rails server then create or migrate existing database
 if [ "${@: -2:1}" == "./bin/rails" ] && [ "${@: -1:1}" == "server" ]; then
+  wait_for_postgres
   ./bin/rails db:prepare
 fi
 
