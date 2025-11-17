@@ -8,7 +8,7 @@ module EventRest
           success code: 200, message: "Returns a list of all users"
         end
         get do
-          users = User.all
+          users = User.limit(100)
           UserSerializer.new(users).serializable_hash
         end
 
