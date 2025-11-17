@@ -72,8 +72,8 @@ RSpec.configure do |config|
   # arbitrary gems may also be filtered via:
   # config.filter_gems_from_backtrace("gem name")
 
-  # Mock credentials.secret_key_base w testach
+  # Mock secret_key_base w testach
   config.before(:each) do
-    allow(Rails.application.credentials).to receive(:secret_key_base).and_return("test_secret_key_base_123")
+    allow(Rails.application).to receive(:secret_key_base).and_return("test_secret_key_base_123")
   end
 end

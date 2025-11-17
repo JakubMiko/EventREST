@@ -25,7 +25,7 @@ module EventRest
       helpers do
         def current_user
           token = headers["Authorization"]&.split(" ")&.last
-          payload = JWT.decode(token, Rails.application.credentials.secret_key_base)[0] rescue nil
+          payload = JWT.decode(token, Rails.application.secret_key_base)[0] rescue nil
           payload ? User.find_by(id: payload["user_id"]) : nil
         end
 

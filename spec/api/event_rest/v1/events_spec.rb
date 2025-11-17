@@ -6,8 +6,8 @@ RSpec.describe "Events API", type: :request do
   let(:password) { "password123" }
   let(:admin) { create(:user, email: "admin@example.com", password: password, admin: true) }
   let(:user) { create(:user, email: "user@example.com", password: password, admin: false) }
-  let(:admin_token) { JWT.encode({ user_id: admin.id }, Rails.application.credentials.secret_key_base) }
-  let(:user_token) { JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base) }
+  let(:admin_token) { JWT.encode({ user_id: admin.id }, Rails.application.secret_key_base) }
+  let(:user_token) { JWT.encode({ user_id: user.id }, Rails.application.secret_key_base) }
 
   describe "GET /api/v1/events" do
     let!(:event1) { create(:event, name: "Concert", category: "music", date: 1.week.from_now) }

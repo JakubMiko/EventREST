@@ -27,7 +27,7 @@ module EventRest
           declared_params = declared(params, include_missing: false)
           user = User.new(declared_params)
           if user.save
-            token = JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base)
+            token = JWT.encode({ user_id: user.id }, Rails.application.secret_key_base)
             status 201
             { token:, data: UserSerializer.new(user).serializable_hash }
           else
@@ -49,7 +49,7 @@ module EventRest
           unless user&.valid_password?(declared_params[:password])
             raise EventRest::V1::Base::ApiException.new("Invalid email or password", 401)
           end
-          token = JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base)
+          token = JWT.encode({ user_id: user.id }, Rails.application.secret_key_base)
           status 200
           { token:, data: UserSerializer.new(user).serializable_hash }
         end

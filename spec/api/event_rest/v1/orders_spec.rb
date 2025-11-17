@@ -8,9 +8,9 @@ RSpec.describe "Orders API", type: :request do
   let(:user) { create(:user, email: "user@example.com", password: password, admin: false) }
   let(:other_user) { create(:user, email: "other@example.com", password: password, admin: false) }
 
-  let(:admin_token) { JWT.encode({ user_id: admin.id }, Rails.application.credentials.secret_key_base) }
-  let(:user_token)  { JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base) }
-  let(:other_token) { JWT.encode({ user_id: other_user.id }, Rails.application.credentials.secret_key_base) }
+  let(:admin_token) { JWT.encode({ user_id: admin.id }, Rails.application.secret_key_base) }
+  let(:user_token)  { JWT.encode({ user_id: user.id }, Rails.application.secret_key_base) }
+  let(:other_token) { JWT.encode({ user_id: other_user.id }, Rails.application.secret_key_base) }
 
   let!(:event) { create(:event) }
   let!(:batch_available) { create(:ticket_batch, :available_now, event: event, available_tickets: 10, price: BigDecimal("80.0")) }

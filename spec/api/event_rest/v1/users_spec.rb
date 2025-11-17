@@ -6,8 +6,8 @@ RSpec.describe "Users API", type: :request do
   let(:password) { "password123" }
   let(:user) { create(:user, password: password, password_confirmation: password, email: "test@example.com") }
   let(:admin) { create(:user, password: password, password_confirmation: password, email: "admin@example.com", admin: true) }
-  let(:token) { JWT.encode({ user_id: user.id }, Rails.application.credentials.secret_key_base) }
-  let(:admin_token) { JWT.encode({ user_id: admin.id }, Rails.application.credentials.secret_key_base) }
+  let(:token) { JWT.encode({ user_id: user.id }, Rails.application.secret_key_base) }
+  let(:admin_token) { JWT.encode({ user_id: admin.id }, Rails.application.secret_key_base) }
 
   describe "POST /api/v1/users/register" do
     it "registers a new user and returns JWT token" do
