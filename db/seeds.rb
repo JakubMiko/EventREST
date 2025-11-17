@@ -83,7 +83,7 @@
     user.password_confirmation = 'password123'
     user.first_name = 'Test'
     user.last_name = 'User'
-    user.admin = false
+    user.admin = true
   end
   puts "✓ Test user created"
 
