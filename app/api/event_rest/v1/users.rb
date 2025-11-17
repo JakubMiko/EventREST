@@ -4,6 +4,14 @@ module EventRest
   module V1
     class Users < Grape::API
       resource :users do
+        desc "Get all users (for benchmark testing)" do
+          success code: 200, message: "Returns a list of all users"
+        end
+        get do
+          users = User.all
+          UserSerializer.new(users).serializable_hash
+        end
+
         desc "Register a new user" do
           success code: 201, message: "Returns JWT + user data"
           failure [ { code: 422, message: "Validation failed" } ]
@@ -81,6 +89,20 @@ module EventRest
           user = User.find_by(id: params[:id])
           raise EventRest::V1::Base::ApiException.new("User not found", 404) unless user
           UserSerializer.new(user).serializable_hash
+        end
+
+        desc "Get all orders for a specific user (for benchmark testing)" do
+          success code: 200, message: "Returns all orders for the specified user"
+          failure [ { code: 404, message: "User not found" } ]
+        end
+        params do
+          requires :id, type: Integer
+        end
+        get ":id/orders" do
+          user = User.find_by(id: params[:id])
+          raise EventRest::V1::Base::ApiException.new("User not found", 404) unless user
+          orders = user.orders
+          OrderSerializer.new(orders).serializable_hash
         end
 
         desc "Change password for logged-in user" do

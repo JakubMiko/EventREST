@@ -172,4 +172,146 @@ RSpec.describe "Users API", type: :request do
       expect(response).to have_http_status(401)
     end
   end
+
+  describe "GET /api/v1/users (benchmark endpoint)" do
+    let!(:user1) { create(:user, email: "user1@test.com", first_name: "John", last_name: "Doe") }
+    let!(:user2) { create(:user, email: "user2@test.com", first_name: "Jane", last_name: "Smith") }
+    let!(:user3) { create(:user, email: "user3@test.com", first_name: "Bob", last_name: "Johnson") }
+
+    it "returns all users without authentication" do
+      get "/api/v1/users"
+      expect(response).to have_http_status(200)
+      json = JSON.parse(response.body)
+      expect(json["data"]).to be_an(Array)
+      expect(json["data"].size).to eq(3)
+    end
+
+    it "returns users in JSON:API format" do
+      get "/api/v1/users"
+      expect(response).to have_http_status(200)
+      json = JSON.parse(response.body)
+
+      first_user = json["data"].first
+      expect(first_user).to have_key("id")
+      expect(first_user).to have_key("type")
+      expect(first_user).to have_key("attributes")
+      expect(first_user["type"]).to eq("user")
+    end
+
+    it "includes expected user attributes" do
+      get "/api/v1/users"
+      expect(response).to have_http_status(200)
+      json = JSON.parse(response.body)
+
+      user_data = json["data"].find { |u| u["id"] == user1.id.to_s }
+      attributes = user_data["attributes"]
+
+      expect(attributes).to have_key("id")
+      expect(attributes).to have_key("email")
+      expect(attributes).to have_key("first_name")
+      expect(attributes).to have_key("last_name")
+      expect(attributes).to have_key("created_at")
+      expect(attributes["email"]).to eq("user1@test.com")
+      expect(attributes["first_name"]).to eq("John")
+      expect(attributes["last_name"]).to eq("Doe")
+    end
+
+    it "includes user relationships" do
+      get "/api/v1/users"
+      expect(response).to have_http_status(200)
+      json = JSON.parse(response.body)
+
+      first_user = json["data"].first
+      expect(first_user).to have_key("relationships")
+      expect(first_user["relationships"]).to have_key("orders")
+    end
+  end
+
+  describe "GET /api/v1/users/:id/orders (benchmark endpoint)" do
+    let!(:test_user) { create(:user, email: "testuser@example.com") }
+    let!(:event1) { create(:event, name: "Concert", date: 1.week.from_now) }
+    let!(:event2) { create(:event, name: "Theater", date: 2.weeks.from_now) }
+    let!(:batch1) { create(:ticket_batch, event: event1, price: 50, available_tickets: 100) }
+    let!(:batch2) { create(:ticket_batch, event: event2, price: 75, available_tickets: 100) }
+    let!(:order1) { create(:order, user: test_user, ticket_batch: batch1, quantity: 2, status: "paid", total_price: 100) }
+    let!(:order2) { create(:order, user: test_user, ticket_batch: batch2, quantity: 3, status: "pending", total_price: 225) }
+    let!(:other_user) { create(:user, email: "other@example.com") }
+    let!(:other_order) { create(:order, user: other_user, ticket_batch: batch1, quantity: 1, status: "paid", total_price: 50) }
+
+    it "returns all orders for a specific user without authentication" do
+      get "/api/v1/users/#{test_user.id}/orders"
+      expect(response).to have_http_status(200)
+      json = JSON.parse(response.body)
+      expect(json["data"]).to be_an(Array)
+      expect(json["data"].size).to eq(2)
+    end
+
+    it "returns only orders for the specified user" do
+      get "/api/v1/users/#{test_user.id}/orders"
+      expect(response).to have_http_status(200)
+      json = JSON.parse(response.body)
+
+      order_ids = json["data"].map { |o| o["id"].to_i }
+      expect(order_ids).to contain_exactly(order1.id, order2.id)
+      expect(order_ids).not_to include(other_order.id)
+    end
+
+    it "returns orders in JSON:API format" do
+      get "/api/v1/users/#{test_user.id}/orders"
+      expect(response).to have_http_status(200)
+      json = JSON.parse(response.body)
+
+      first_order = json["data"].first
+      expect(first_order).to have_key("id")
+      expect(first_order).to have_key("type")
+      expect(first_order).to have_key("attributes")
+      expect(first_order["type"]).to eq("order")
+    end
+
+    it "includes expected order attributes" do
+      get "/api/v1/users/#{test_user.id}/orders"
+      expect(response).to have_http_status(200)
+      json = JSON.parse(response.body)
+
+      order_data = json["data"].find { |o| o["id"] == order1.id.to_s }
+      attributes = order_data["attributes"]
+
+      expect(attributes).to have_key("id")
+      expect(attributes).to have_key("status")
+      expect(attributes).to have_key("total_price")
+      expect(attributes).to have_key("created_at")
+      expect(attributes).to have_key("quantity")
+      expect(attributes["status"]).to eq("paid")
+      expect(attributes["total_price"].to_f).to eq(100.0)
+      expect(attributes["quantity"]).to eq(2)
+    end
+
+    it "includes order relationships" do
+      get "/api/v1/users/#{test_user.id}/orders"
+      expect(response).to have_http_status(200)
+      json = JSON.parse(response.body)
+
+      first_order = json["data"].first
+      expect(first_order).to have_key("relationships")
+      expect(first_order["relationships"]).to have_key("user")
+      expect(first_order["relationships"]).to have_key("ticket_batch")
+      expect(first_order["relationships"]).to have_key("tickets")
+    end
+
+    it "returns 404 when user not found" do
+      get "/api/v1/users/999999/orders"
+      expect(response).to have_http_status(404)
+      json = JSON.parse(response.body)
+      expect(json["error"]).to eq("User not found")
+    end
+
+    it "returns empty array when user has no orders" do
+      user_without_orders = create(:user, email: "noorders@example.com")
+      get "/api/v1/users/#{user_without_orders.id}/orders"
+      expect(response).to have_http_status(200)
+      json = JSON.parse(response.body)
+      expect(json["data"]).to be_an(Array)
+      expect(json["data"]).to be_empty
+    end
+  end
 end
