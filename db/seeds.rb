@@ -73,8 +73,19 @@
   # ============================================
   # 1. CREATE USERS
   # ============================================
-  puts "\n👥 Creating #{format_number(TOTAL_USERS)} users..."
+  puts "\n👥 Creating #{format_number(TOTAL_USERS+1)} users..."
   users_data = []
+
+  # Create test user for benchmarking (no related records)
+  puts "Creating test user for benchmarks..."
+  User.find_or_create_by!(email: 'test@benchmark.com') do |user|
+    user.password = 'password123'
+    user.password_confirmation = 'password123'
+    user.first_name = 'Test'
+    user.last_name = 'User'
+    user.admin = false
+  end
+  puts "✓ Test user created"
 
   # OPTIMIZATION: Encrypt password once and reuse for all seed users
   # This saves ~8 minutes of BCrypt encryption time!
