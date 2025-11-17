@@ -9,7 +9,7 @@ class EventsQuery
   end
 
   def call
-    scope = Event.all
+    scope = Event.limit(100)
     scope = scope.where(category: params[:category]) if params[:category]
     scope = scope.where("date >= ?", Time.now) if params[:upcoming]
     scope = scope.where("date < ?", Time.now) if params[:past]
