@@ -16,20 +16,24 @@ module EventRest
           page = [ params[:page], 1 ].max
           per_page = [ [ params[:per_page], 1 ].max, 100 ].min
 
-          base_scope = EventsQuery.new(params: params).call.includes(:ticket_batches)
-          total_count = base_scope.count
+          cache_key = "events:page_#{page}:per_#{per_page}:cat_#{params[:category]}:up_#{params[:upcoming]}:past_#{params[:past]}"
 
-          pagy = Pagy.new(count: total_count, page: page, limit: per_page)
-          events = base_scope.offset(pagy.offset).limit(pagy.limit)
+          Rails.cache.fetch(cache_key, expires_in: 5.minutes) do
+            base_scope = EventsQuery.new(params: params).call.includes(:ticket_batches)
+            total_count = base_scope.count
 
-          serialized = EventSerializer.new(events, include: [ :ticket_batches ]).serializable_hash
-          serialized[:meta] = {
-            current_page: pagy.page,
-            per_page: pagy.limit,
-            total_pages: pagy.pages,
-            total_count: pagy.count
-          }
-          serialized
+            pagy = Pagy.new(count: total_count, page: page, limit: per_page)
+            events = base_scope.offset(pagy.offset).limit(pagy.limit).to_a
+
+            serialized = EventSerializer.new(events, include: [ :ticket_batches ]).serializable_hash
+            serialized[:meta] = {
+              current_page: pagy.page,
+              per_page: pagy.limit,
+              total_pages: pagy.pages,
+              total_count: pagy.count
+            }
+            serialized
+          end
         end
 
         desc "Get event details by id" do
