@@ -9,10 +9,27 @@ module EventRest
           optional :category, type: String
           optional :upcoming, type: Boolean
           optional :past, type: Boolean
+          optional :page, type: Integer, default: 1, desc: "Page number"
+          optional :per_page, type: Integer, default: 20, desc: "Items per page (max 100)"
         end
         get do
-          events = EventsQuery.new(params: params).call.includes(:ticket_batches)
-          EventSerializer.new(events, include: [ :ticket_batches ]).serializable_hash
+          page = [ params[:page], 1 ].max
+          per_page = [ [ params[:per_page], 1 ].max, 100 ].min
+
+          base_scope = EventsQuery.new(params: params).call.includes(:ticket_batches)
+          total_count = base_scope.count
+
+          pagy = Pagy.new(count: total_count, page: page, limit: per_page)
+          events = base_scope.offset(pagy.offset).limit(pagy.limit)
+
+          serialized = EventSerializer.new(events, include: [ :ticket_batches ]).serializable_hash
+          serialized[:meta] = {
+            current_page: pagy.page,
+            per_page: pagy.limit,
+            total_pages: pagy.pages,
+            total_count: pagy.count
+          }
+          serialized
         end
 
         desc "Get event details by id" do
