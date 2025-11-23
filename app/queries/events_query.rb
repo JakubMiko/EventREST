@@ -13,6 +13,6 @@ class EventsQuery
     scope = scope.where(category: params[:category]) if params[:category]
     scope = scope.where("date >= ?", Time.now) if params[:upcoming]
     scope = scope.where("date < ?", Time.now) if params[:past]
-    scope
+    scope.order(date: :desc)
   end
 end

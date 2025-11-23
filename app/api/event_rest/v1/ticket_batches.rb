@@ -10,7 +10,7 @@ module EventRest
             failure [ { code: 404, message: "Event not found" } ]
           end
           params do
-            optional :state, type: String, values: %w[available sold_out expired inactive all], default: "available"
+            optional :state, type: String, values: %w[available sold_out expired inactive all], default: "all"
             optional :order, type: String, values: %w[asc desc], default: "asc"
           end
           get :ticket_batches do

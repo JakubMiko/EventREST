@@ -3,7 +3,7 @@
 class TicketBatchQuery
   attr_reader :relation, :state, :order, :now
 
-  def initialize(relation:, state: "available", order: "asc", now: Time.current)
+  def initialize(relation:, state: "all", order: "asc", now: Time.current)
     @relation = relation
     @state = state.to_s
     @order = %w[asc desc].include?(order.to_s.downcase) ? order.to_s.downcase : "asc"

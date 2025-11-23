@@ -18,14 +18,12 @@ RSpec.describe "TicketBatches API", type: :request do
     let!(:expired)    { create(:ticket_batch, :expired, event: event, price: 30) }
     let!(:inactive)   { create(:ticket_batch, :inactive, event: event, price: 70) }
 
-    it "returns available batches by default (asc by sale_start)" do
+    it "returns all batches by default (asc by sale_start)" do
       get "/api/v1/events/#{event.id}/ticket_batches"
       expect(response).to have_http_status(200)
       json = JSON.parse(response.body)
-      names = json["data"].map { |d| d["id"].to_i }
-      expect(names).to contain_exactly(available1.id, available2.id)
-      # asc: earlier sale_start first
-      expect(names.first).to eq(available1.id)
+      ids = json["data"].map { |d| d["id"].to_i }
+      expect(ids).to contain_exactly(available1.id, available2.id, sold_out.id, expired.id, inactive.id)
     end
 
     it "filters by state=sold_out" do
