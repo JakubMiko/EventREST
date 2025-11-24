@@ -44,12 +44,16 @@ Rails.application.configure do
   config.active_support.report_deprecations = false
 
   # Use Redis for caching (falls back to memory store if Redis unavailable)
-  config.cache_store = :redis_cache_store, {
-    url: ENV.fetch("REDIS_URL", "redis://localhost:6379/1"),
-    error_handler: ->(method:, returning:, exception:) {
-      Rails.logger.error("Redis cache error: #{exception.message}")
+  if ENV["DISABLE_CACHE"] == "true"
+    config.cache_store = :null_store
+  else
+    config.cache_store = :redis_cache_store, {
+      url: ENV.fetch("REDIS_URL", "redis://localhost:6379/1"),
+      error_handler: ->(method:, returning:, exception:) {
+        Rails.logger.error("Redis cache error: #{exception.message}")
+      }
     }
-  }
+  end
 
   # Replace the default in-process and non-durable queuing backend for Active Job.
   config.active_job.queue_adapter = :solid_queue
