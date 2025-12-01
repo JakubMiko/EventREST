@@ -44,7 +44,7 @@ gem "devise", "~> 4.9"
 gem "sprockets-rails"
 gem "dry-validation"
 gem "dry-monads"
-gem "pagy", "~> 9.0"
+gem "pagy", "~> 43.1"
 gem "redis", "~> 5.0"
 
 group :development, :test do
