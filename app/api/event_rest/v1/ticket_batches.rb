@@ -14,7 +14,7 @@ module EventRest
             optional :order, type: String, values: %w[asc desc], default: "asc"
           end
           get :ticket_batches do
-            event = Event.find(params[:event_id])
+            event = Event.includes(:ticket_batches).find(params[:event_id])
 
             collection = TicketBatchQuery.new(
               relation: event.ticket_batches,
