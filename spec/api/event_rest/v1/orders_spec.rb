@@ -101,6 +101,111 @@ RSpec.describe "Orders API", type: :request do
       get "/api/v1/orders"
       expect(response).to have_http_status(401)
     end
+
+    context "pagination" do
+      before do
+        # Create 25 orders for the user to test pagination
+        23.times do
+          create(:order, user: user, ticket_batch: batch_available, quantity: 1, total_price: 80.0, status: "pending")
+        end
+      end
+
+      it "returns paginated results with default page size of 20" do
+        get "/api/v1/orders", headers: { "Authorization" => "Bearer #{user_token}" }
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        expect(json["data"].size).to eq(20)
+        expect(json["meta"]["current_page"]).to eq(1)
+        expect(json["meta"]["per_page"]).to eq(20)
+        expect(json["meta"]["total_count"]).to eq(25) # 23 + my_order1 + my_order2
+        expect(json["meta"]["total_pages"]).to eq(2)
+      end
+
+      it "returns second page with remaining orders" do
+        get "/api/v1/orders", params: { page: 2 }, headers: { "Authorization" => "Bearer #{user_token}" }
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        expect(json["data"].size).to eq(5)
+        expect(json["meta"]["current_page"]).to eq(2)
+        expect(json["meta"]["per_page"]).to eq(20)
+        expect(json["meta"]["total_count"]).to eq(25)
+        expect(json["meta"]["total_pages"]).to eq(2)
+      end
+
+      it "respects custom per_page parameter" do
+        get "/api/v1/orders", params: { per_page: 10 }, headers: { "Authorization" => "Bearer #{user_token}" }
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        expect(json["data"].size).to eq(10)
+        expect(json["meta"]["current_page"]).to eq(1)
+        expect(json["meta"]["per_page"]).to eq(10)
+        expect(json["meta"]["total_count"]).to eq(25)
+        expect(json["meta"]["total_pages"]).to eq(3)
+      end
+
+      it "enforces maximum per_page of 100" do
+        get "/api/v1/orders", params: { per_page: 200 }, headers: { "Authorization" => "Bearer #{user_token}" }
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        expect(json["data"].size).to eq(25)
+        expect(json["meta"]["per_page"]).to eq(100) # Capped at 100
+      end
+
+      it "enforces minimum per_page of 1" do
+        get "/api/v1/orders", params: { per_page: 0 }, headers: { "Authorization" => "Bearer #{user_token}" }
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        expect(json["meta"]["per_page"]).to eq(1)
+        expect(json["data"].size).to eq(1)
+      end
+
+      it "enforces minimum page of 1" do
+        get "/api/v1/orders", params: { page: 0 }, headers: { "Authorization" => "Bearer #{user_token}" }
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        expect(json["meta"]["current_page"]).to eq(1)
+      end
+
+      it "returns orders in descending created_at order" do
+        get "/api/v1/orders", params: { per_page: 25 }, headers: { "Authorization" => "Bearer #{user_token}" }
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        # Extract created_at timestamps
+        created_ats = json["data"].map { |o| Time.parse(o["attributes"]["created_at"]) }
+
+        # Verify they are in descending order
+        expect(created_ats).to eq(created_ats.sort.reverse)
+      end
+
+      it "returns only order attributes without relationships (for performance)" do
+        get "/api/v1/orders", params: { per_page: 5 }, headers: { "Authorization" => "Bearer #{user_token}" }
+        expect(response).to have_http_status(200)
+        json = JSON.parse(response.body)
+
+        json["data"].each do |order_data|
+          # Should have all order attributes
+          expect(order_data["attributes"]).to have_key("id")
+          expect(order_data["attributes"]).to have_key("user_id")
+          expect(order_data["attributes"]).to have_key("ticket_batch_id")
+          expect(order_data["attributes"]).to have_key("quantity")
+          expect(order_data["attributes"]).to have_key("total_price")
+          expect(order_data["attributes"]).to have_key("status")
+
+          # Should NOT have any relationships (uses OrderListSerializer)
+          expect(order_data).not_to have_key("relationships")
+        end
+
+        # Should not have any included resources
+        expect(json).not_to have_key("included")
+      end
+    end
   end
 
   describe "GET /api/v1/orders/:id (show)" do
@@ -157,32 +262,25 @@ RSpec.describe "Orders API", type: :request do
     end
 
     context "serialization" do
-      it "includes event, ticket_batch, and user (minimal) in the response" do
+      it "returns only order attributes without relationships (for performance)" do
         get "/api/v1/orders/all", headers: { "Authorization" => "Bearer #{admin_token}" }
 
         expect(response).to have_http_status(200)
         json = JSON.parse(response.body)
 
         json["data"].each do |order_data|
-          expect(order_data["relationships"]).to have_key("event")
-          expect(order_data["relationships"]).to have_key("ticket_batch")
-          expect(order_data["relationships"]).to have_key("user")
+          # Should have all order attributes including user_id, ticket_batch_id
+          expect(order_data["attributes"]).to have_key("id")
+          expect(order_data["attributes"]).to have_key("user_id")
+          expect(order_data["attributes"]).to have_key("ticket_batch_id")
+          expect(order_data["attributes"]).to have_key("status")
+
+          # Should NOT have any relationships (uses OrderListSerializer)
+          expect(order_data).not_to have_key("relationships")
         end
 
-        included_types = json["included"].map { |i| i["type"] }.uniq
-        expect(included_types).to include("event", "ticket_batch", "user")
-
-        included_users = json["included"].select { |i| i["type"] == "user" }
-        included_users.each do |user_data|
-          expect(user_data["attributes"]).to have_key("email")
-          expect(user_data["attributes"]).to have_key("first_name")
-          expect(user_data["attributes"]).to have_key("last_name")
-          expect(user_data).not_to have_key("relationships")
-        end
-
-
-        included_tickets = json["included"]&.select { |i| i["type"] == "ticket" }
-        expect(included_tickets).to be_empty
+        # Should not have any included resources
+        expect(json).not_to have_key("included")
       end
     end
   end

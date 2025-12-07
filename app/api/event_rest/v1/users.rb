@@ -101,8 +101,8 @@ module EventRest
         get ":id/orders" do
           user = User.find_by(id: params[:id])
           raise EventRest::V1::Base::ApiException.new("User not found", 404) unless user
-          orders = user.orders
-          OrderSerializer.new(orders).serializable_hash
+          orders = user.orders.order(created_at: :desc)
+          OrderListSerializer.new(orders).serializable_hash
         end
 
         desc "Change password for logged-in user" do

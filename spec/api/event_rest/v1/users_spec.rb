@@ -286,16 +286,19 @@ RSpec.describe "Users API", type: :request do
       expect(attributes["quantity"]).to eq(2)
     end
 
-    it "includes order relationships" do
+    it "returns only order attributes without relationships (for performance)" do
       get "/api/v1/users/#{test_user.id}/orders"
       expect(response).to have_http_status(200)
       json = JSON.parse(response.body)
 
       first_order = json["data"].first
-      expect(first_order).to have_key("relationships")
-      expect(first_order["relationships"]).to have_key("user")
-      expect(first_order["relationships"]).to have_key("ticket_batch")
-      expect(first_order["relationships"]).to have_key("tickets")
+      # Should have order attributes
+      expect(first_order["attributes"]).to have_key("id")
+      expect(first_order["attributes"]).to have_key("user_id")
+      expect(first_order["attributes"]).to have_key("ticket_batch_id")
+      expect(first_order["attributes"]).to have_key("status")
+      # Should NOT have any relationships (uses OrderListSerializer)
+      expect(first_order).not_to have_key("relationships")
     end
 
     it "returns 404 when user not found" do

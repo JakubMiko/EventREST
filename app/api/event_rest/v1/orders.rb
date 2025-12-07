@@ -32,16 +32,34 @@ module EventRest
         end
 
         desc "List current user's orders" do
-          success code: 200, message: "Returns array of orders belonging to authenticated user"
+          success code: 200, message: "Returns array of orders belonging to authenticated user (paginated)"
           failure [ { code: 401, message: "Unauthorized" } ]
+        end
+        params do
+          optional :page, type: Integer, default: 1, desc: "Page number"
+          optional :per_page, type: Integer, default: 20, desc: "Items per page (max 100)"
         end
         get do
           authorize!
-          orders = ::Order
-                     .where(user_id: current_user.id)
-                     .includes(:tickets, :ticket_batch, :event)
-                     .order(created_at: :desc)
-          OrderSerializer.new(orders, include: %i[tickets ticket_batch event]).serializable_hash
+          page = [ params[:page], 1 ].max
+          per_page = [ [ params[:per_page], 1 ].max, 100 ].min
+
+          base_scope = ::Order
+                         .where(user_id: current_user.id)
+                         .order(created_at: :desc)
+          total_count = base_scope.count
+
+          pagy = Pagy.new(count: total_count, page: page, limit: per_page)
+          orders = base_scope.offset(pagy.offset).limit(pagy.limit).to_a
+
+          serialized = OrderListSerializer.new(orders).serializable_hash
+          serialized[:meta] = {
+            current_page: pagy.page,
+            per_page: pagy.limit,
+            total_pages: pagy.pages,
+            total_count: pagy.count
+          }
+          serialized
         end
 
         desc "Show order details (admin any / user own)" do
@@ -77,9 +95,9 @@ module EventRest
         get :all do
           admin_only!
           declared_params = declared(params, include_missing: false)
-          scope = ::Order.includes(:user, :ticket_batch, :event).order(created_at: :desc)
+          scope = ::Order.order(created_at: :desc)
           scope = scope.where(user_id: declared_params[:user_id]) if declared_params[:user_id]
-          OrderSerializer.new(scope, include: %i[ticket_batch event user]).serializable_hash
+          OrderListSerializer.new(scope).serializable_hash
         end
 
         desc "Cancel order (owner or admin)" do
