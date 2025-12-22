@@ -149,7 +149,7 @@ GEM
     factory_bot_rails (6.5.1)
       factory_bot (~> 6.5)
       railties (>= 6.1.0)
-    faker (3.5.2)
+    faker (3.5.3)
       i18n (>= 1.8.11, < 2)
     fugit (1.12.1)
       et-orbi (~> 1.4)
@@ -446,7 +446,7 @@ DEPENDENCIES
   dry-monads
   dry-validation
   factory_bot_rails
-  faker (~> 3.2)
+  faker (~> 3.5)
   grape
   grape-swagger
   grape-swagger-rails
